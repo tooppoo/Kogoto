@@ -1,37 +1,46 @@
 # kogoto Issue Refinement Workflow
 
-This document defines the MVP workflow for kogoto.
+This document defines the Issue refinement workflow for kogoto.
 
-kogoto focuses on Issue refinement before implementation.
-It helps humans discuss, clarify, split, and govern Issues.
+kogoto is centered on a chat-driven refinement session started by:
+
+```sh
+kogoto refine <issue-number>
+```
+
+After the session starts, the user should not need to leave the conversation to run separate commands for each refinement action.
+
+kogoto proposes actions inside the session.
+The user approves or rejects them inside the session.
+Only approved persistent actions are executed.
 
 ## Workflow overview
 
-The basic flow is:
+The basic workflow is:
 
-1. Select a GitHub Issue.
-2. Read the Issue body and relevant comments.
-3. Extract the current discussion state.
-4. Identify unresolved questions.
-5. Identify accepted decisions.
-6. Identify rejected alternatives.
-7. Estimate implementation impact.
-8. Detect whether the Issue should be split.
-9. Detect ADR candidates.
-10. Post a structured refinement comment.
-11. Continue discussion.
-12. Repeat refinement as needed.
+1. Start a refinement session with `kogoto refine <issue-number>`.
+2. kogoto reads the target Issue.
+3. kogoto summarizes the current state.
+4. kogoto identifies missing information and unresolved questions.
+5. The user answers, rejects, or revises the interpretation.
+6. kogoto identifies decisions, rejected alternatives, split candidates, and ADR candidates.
+7. kogoto proposes persistent actions when useful.
+8. The user approves or rejects each action.
+9. kogoto executes approved actions.
+10. The session continues until the Issue is sufficiently refined.
 
-kogoto is expected to be used repeatedly on the same Issue.
+The workflow is iterative.
 
-An Issue does not become "complete" just because kogoto has refined it once.
-The refinement loop continues as long as discussion changes the scope, assumptions, or decisions.
+An Issue is not considered refined merely because kogoto produced one report.
+Refinement continues as long as the discussion changes the scope, assumptions, or decisions.
 
-## Core workflow
+## Session start
 
-### Step 1: Select an Issue
+The user starts with:
 
-The user selects a target Issue.
+```sh
+kogoto refine <issue-number>
+```
 
 Example:
 
@@ -41,196 +50,319 @@ kogoto refine 123
 
 kogoto reads:
 
-* Issue title
-* Issue body
-* Issue comments
-* labels
-* linked Issues if available
-* linked ADRs or documents if available
+- Issue title
+- Issue body
+- Issue comments
+- labels
+- linked Issues, if available
+- linked documents or ADRs, if available
+- repository files, if needed for lightweight impact estimation
 
-In the MVP, linked Issue and document support may be shallow or manual.
+The first MVP may limit repository inspection and linked-resource traversal.
 
-### Step 2: Summarize the current state
+## Initial analysis
 
-kogoto summarizes the current state of the Issue.
+At the beginning of the session, kogoto presents an initial analysis.
 
-The summary should distinguish:
+The analysis should distinguish:
 
-* stated goal
-* current scope
-* accepted decisions
-* unresolved questions
-* rejected alternatives
-* known constraints
-* likely affected files or modules
-* related Issues
-* ADR candidates
+- directly stated information
+- inferred information
+- unresolved questions
+- accepted decisions
+- rejected alternatives
+- likely affected files or modules
+- possible split candidates
+- possible ADR candidates
 
-The summary must not invent decisions.
-If something is inferred, it should be marked as an inference.
+kogoto must not present inference as fact.
 
-### Step 3: Identify unresolved questions
+Example:
 
-kogoto extracts questions that block further refinement.
+```markdown
+## Current understanding
 
-Examples:
+The Issue appears to redefine kogoto as an Issue refinement tool rather than a full development workflow tool.
 
-* What behavior should change?
-* Which command owns this responsibility?
-* Should this be documented as an ADR?
-* Is compatibility required?
-* Is this Issue too large?
-* Which files are likely to change?
-* Should this be split into separate Issues?
+This is inferred from the discussion, not yet recorded as a final project decision.
 
-Questions should be specific enough for humans to answer.
+## Open questions
+
+- Should `kogoto refine` be the only MVP user-facing command?
+- Should child Issue creation be included in the first MVP, or only designed as a future session action?
+```
+
+## Clarification loop
+
+kogoto asks specific questions when the Issue is underspecified.
 
 Bad:
 
 ```text
-Clarify the design.
+Please clarify the design.
 ```
 
 Good:
 
 ```text
-Should kogoto create child Issues automatically, or only suggest split candidates in a comment?
+Should kogoto create child Issues during the first MVP, or should it only propose split candidates in the refinement session?
 ```
 
-### Step 4: Identify decisions
+The user may answer in ordinary chat.
 
-kogoto identifies decisions that have already been made.
+kogoto should then update its working understanding and, when appropriate, propose recording the answer.
+
+Example:
+
+```text
+This answer changes the command design. Should I post a decision note to the Issue?
+```
+
+If the user approves, kogoto posts the comment.
+
+## Decision tracking
+
+kogoto tracks decisions made during refinement.
 
 Each decision should include:
 
-* decision
-* reason
-* source comment or discussion context, if available
-* affected scope
-* whether it may require ADR recording
+- decision
+- reason
+- affected scope
+- source context
+- whether ADR recording may be appropriate
 
 Example:
 
-```text
-Decision:
-kogoto should not own implementation loops.
+```markdown
+## Decision
 
-Reason:
-Implementation, verification, and PR workflow orchestration should be handled by other tools.
+kogoto should use `kogoto refine <issue-number>` as the primary MVP entrypoint.
 
-Affected scope:
-README, workflow definition, command design.
+## Reason
+
+Issue refinement should happen inside a chat session. Users should not need to leave the session to run separate commands for comment posting, Issue splitting, or ADR suggestion.
+
+## Affected scope
+
+- README.md
+- docs/workflow.md
+- docs/commands.md
 ```
 
-### Step 5: Identify rejected alternatives
+kogoto may propose posting this as an Issue comment.
 
-kogoto records rejected alternatives when they are relevant.
+## Rejected alternatives
 
-Rejected alternatives are important because they prevent repeated discussion.
+Rejected alternatives should be recorded when they prevent repeated discussion.
 
 Example:
 
-```text
-Rejected alternative:
-Make kogoto the full development workflow orchestrator.
+```markdown
+## Rejected alternative
 
-Reason:
-This would blur its responsibility with testography, git-kura, Ortoxygen, coding agents, and CI.
+Expose `kogoto split`, `kogoto adr`, and `kogoto discuss` as primary MVP commands.
+
+## Reason
+
+This would make the user leave the refinement session for each action and would shift kogoto toward a generic GitHub Issue operation CLI.
 ```
 
-### Step 6: Estimate issue size
+Rejected alternatives are part of the project reasoning and should not be discarded.
 
-kogoto estimates whether the Issue is too large.
+## Impact estimation
 
-The estimate may use:
+kogoto estimates likely implementation impact during refinement.
 
-* expected touched files
-* expected new files
-* expected deleted files
-* expected line changes
-* affected modules
-* number of independent decisions
-* number of acceptance criteria
-* number of unresolved questions
-* uncertainty level
+The estimate is not a measured diff.
 
-The MVP should treat these as estimates, not facts.
+It may include:
+
+- expected touched files
+- expected new files
+- expected deleted files
+- expected affected modules
+- expected documentation changes
+- expected command changes
+- number of unresolved questions
+- uncertainty level
+- split risk
 
 Example:
 
-```text
-Estimated size:
-- expected touched files: 6-9
-- expected new files: 2
-- expected diff size: medium
-- uncertainty: high
+```markdown
+## Estimated impact
 
-Assessment:
-This Issue likely exceeds the preferred MVP size and should be split.
+- README.md: replace or substantially revise
+- docs/workflow.md: create
+- docs/commands.md: create
+- CLI implementation: not required for this documentation-only Issue
+
+Estimated size: small to medium
+Uncertainty: low
+Split risk: low
 ```
 
-### Step 7: Suggest split candidates
+If the estimate exceeds configured thresholds, kogoto should suggest splitting the Issue.
 
-When an Issue appears too broad, kogoto proposes split candidates.
+## Issue splitting
 
-Each split candidate should include:
+kogoto may suggest splitting when an Issue is too large or contains separable concerns.
 
-* title
-* purpose
-* included scope
-* excluded scope
-* dependency on parent or sibling Issues
-* expected affected files
-* reason for separation
+Split candidates should include:
+
+- proposed title
+- purpose
+- included scope
+- excluded scope
+- parent Issue relationship
+- sibling Issue relationships
+- expected affected files
+- reason for separation
 
 Example:
 
-```text
-Split candidate:
-Define kogoto MVP concept documents
+```markdown
+## Split candidate
+
+### Define MVP documentation
 
 Purpose:
-Create README.md, docs/workflow.md, and docs/commands.md.
+Create README.md, docs/workflow.md, and docs/commands.md for the zero-based MVP.
+
+Included:
+- concept
+- workflow
+- command design
 
 Excluded:
-Implementation, GitHub API integration, child Issue creation.
+- CLI implementation
+- GitHub API integration
+- child Issue creation
 ```
 
-kogoto should not create child Issues automatically in the MVP unless explicitly requested.
-
-### Step 8: Detect ADR candidates
-
-kogoto detects decisions that may deserve ADRs.
-
-ADR candidates should be suggested when a decision is:
-
-* architectural
-* persistent
-* cross-cutting
-* likely to affect future Issues
-* likely to be revisited
-* important for tool boundaries
-* important for data model or workflow design
+kogoto should ask before creating child Issues.
 
 Example:
 
 ```text
-ADR candidate:
-Limit kogoto scope to Issue refinement and decomposition governance.
-
-Reason:
-This defines the boundary between kogoto and orchestration tools.
+This Issue can be split into two child Issues. Should I create them?
 ```
 
-kogoto should ask humans whether to record the decision as an ADR.
+Only after approval should kogoto create child Issues.
 
-### Step 9: Post a refinement comment
+## Parent-child Issue governance
 
-kogoto posts a structured comment to the Issue.
+When child Issues are created, kogoto should preserve the relationship between the parent and children.
 
-The comment should use a stable format.
+### Parent Issue
 
-Recommended sections:
+The parent Issue should contain:
+
+- original motivation
+- overall direction
+- child Issue list
+- shared decisions
+- cross-cutting unresolved questions
+- integration notes, if needed
+
+### Child Issue
+
+Each child Issue should contain:
+
+- narrow purpose
+- inherited context from the parent
+- included scope
+- excluded scope
+- acceptance criteria
+- local unresolved questions
+- link to the parent Issue
+- known sibling dependencies
+
+### Sibling Issues
+
+Sibling Issues should be checked for:
+
+- overlapping scope
+- inconsistent terminology
+- conflicting decisions
+- duplicated acceptance criteria
+- hidden dependencies
+
+If a child Issue discussion changes assumptions shared by the parent or siblings, kogoto should propose updating the affected Issues.
+
+## ADR candidate workflow
+
+kogoto detects ADR candidates during refinement.
+
+A decision may be an ADR candidate when it is:
+
+- architectural
+- persistent
+- cross-cutting
+- likely to affect future Issues
+- likely to be revisited
+- relevant to tool boundaries
+- relevant to data model or workflow design
+
+Example:
+
+```markdown
+## ADR candidate
+
+Decision:
+kogoto should be scoped to Issue refinement and decomposition governance.
+
+Reason:
+This defines the boundary between kogoto and implementation, testing, Git workflow, repository analysis, and orchestration tools.
+
+Suggested action:
+Ask whether this decision should be recorded as an ADR.
+```
+
+kogoto should ask before preparing or posting ADR-related content.
+
+Example:
+
+```text
+This looks like an ADR candidate. Should I prepare an ADR draft?
+```
+
+## Persistent actions
+
+Persistent actions are changes made outside the transient chat session.
+
+Examples:
+
+- post an Issue comment
+- create a child Issue
+- update a parent Issue
+- update a child Issue
+- link Issues
+- post an ADR candidate comment
+- create an ADR draft
+- update documentation
+
+Persistent actions require explicit user approval.
+
+kogoto must distinguish proposal from execution.
+
+Example:
+
+```text
+Proposed action:
+Post the following refinement comment to Issue #123.
+
+Proceed?
+```
+
+The action is executed only after the user approves.
+
+## Refinement comment format
+
+A refinement comment should be concise and structured.
+
+Recommended format:
 
 ```markdown
 # Refinement
@@ -249,136 +381,117 @@ Recommended sections:
 
 ## ADR candidates
 
-## Suggested next action
+## Proposed next action
 ```
 
-The comment should be concise enough to review.
+The exact sections may be omitted when empty.
 
-If the discussion is long, kogoto should prioritize decision-relevant information over chat transcript completeness.
-
-### Step 10: Continue the loop
-
-After humans answer questions or make decisions, kogoto can run again.
-
-Repeated refinement should:
-
-* preserve previous decisions
-* update outdated summaries
-* mark resolved questions
-* detect new questions
-* update split candidates
-* identify parent or sibling Issue impact
-
-## Parent-child Issue governance
-
-When an Issue is split, kogoto should maintain relationships between Issues.
-
-### Parent Issue responsibilities
-
-The parent Issue should retain:
-
-* original motivation
-* overall scope
-* list of child Issues
-* decisions shared by all child Issues
-* unresolved cross-cutting questions
-* final integration status, if relevant
-
-### Child Issue responsibilities
-
-A child Issue should contain:
-
-* narrow purpose
-* inherited context from parent
-* local scope
-* local acceptance criteria
-* local unresolved questions
-* links back to parent
-* known sibling dependencies
-
-### Sibling Issue responsibilities
-
-Sibling Issues should avoid:
-
-* overlapping scope
-* conflicting decisions
-* duplicate acceptance criteria
-* inconsistent terminology
-* hidden dependencies
-
-kogoto should flag these risks when detected.
-
-## Human-in-the-loop rules
-
-kogoto should not silently make persistent decisions.
-
-The following actions require explicit human confirmation:
-
-* creating a child Issue
-* updating a parent Issue
-* posting an ADR plan
-* creating or updating an ADR file
-* changing the stated scope of an Issue
-* marking an unresolved question as resolved
-* declaring an Issue ready for implementation
-
-kogoto may propose these actions, but should not treat proposals as decisions.
-
-## MVP output format
-
-The MVP refinement comment should be plain Markdown.
-
-Example:
+## Example refinement comment
 
 ```markdown
 # Refinement
 
 ## Current understanding
 
-This Issue redefines kogoto as an Issue refinement tool rather than a full development workflow tool.
+This Issue redefines kogoto as a tool for Issue refinement and decomposition governance.
+
+The main scope is documentation for a zero-based MVP.
 
 ## Accepted decisions
 
-- kogoto focuses on Issue refinement and decomposition.
-- implementation loops are out of scope.
-- orchestration belongs to a separate tool.
+- `kogoto refine <issue-number>` is the primary MVP entrypoint.
+- Refinement proceeds inside a chat session.
+- Comment posting and child Issue creation are session actions, not separate commands that users must manually invoke.
+- Persistent actions require explicit user approval.
+
+## Rejected alternatives
+
+- Expose `kogoto split`, `kogoto adr`, and `kogoto discuss` as primary MVP commands.
+  - Reason: this would push users out of the refinement session and make kogoto resemble a generic Issue operation CLI.
 
 ## Open questions
 
-- Should the MVP only post refinement comments, or also create child Issues?
-- What thresholds should trigger split suggestions?
+- Should child Issue creation be implemented in the first MVP or left as a future session action?
+- What default thresholds should trigger split suggestions?
 
 ## Estimated impact
 
-- README.md: create or replace
+- README.md: revise
 - docs/workflow.md: create
 - docs/commands.md: create
 
-Estimated size: small to medium.
+Estimated size: small to medium
+Uncertainty: low
 
 ## Split candidates
 
-No split required for the initial documentation-only MVP.
+No split required for the initial documentation-only Issue.
 
 ## ADR candidates
 
-- Scope pivot: kogoto as Issue refinement / decomposition governance tool.
+- Scope pivot: kogoto as Issue refinement and decomposition governance tool.
 
-## Suggested next action
+## Proposed next action
 
-Create the initial documentation files and review whether the command design matches the new scope.
+Update the MVP documentation and review whether the command design matches the chat-driven refinement model.
 ```
+
+## Human approval rules
+
+The following actions require approval:
+
+- posting a refinement comment
+- posting a decision note
+- creating child Issues
+- updating parent or child Issues
+- preparing ADR drafts
+- updating documentation
+- marking a question as resolved
+- declaring an Issue ready for implementation
+
+The following actions do not require approval:
+
+- reading an Issue
+- summarizing discussion
+- asking questions
+- suggesting split candidates
+- suggesting ADR candidates
+- estimating impact
+- identifying unresolved concerns
+
+## End of session
+
+A refinement session may end when:
+
+- the Issue scope is clear
+- unresolved questions are recorded
+- accepted decisions are recorded
+- rejected alternatives are recorded
+- split candidates are resolved
+- ADR candidates are resolved
+- the next action is clear
+
+Ending a refinement session does not necessarily mean the Issue is ready for implementation.
+
+kogoto may conclude that the next action is:
+
+- answer remaining questions
+- split the Issue
+- record an ADR
+- update the parent Issue
+- create documentation
+- proceed to implementation outside kogoto
 
 ## Non-goals
 
 This workflow does not define:
 
-* code implementation flow
-* test execution flow
-* pull request flow
-* CI behavior
-* worktree management
-* release flow
-* full multi-tool orchestration
+- implementation loop
+- test execution loop
+- pull request loop
+- CI behavior
+- Git worktree management
+- release flow
+- full multi-tool orchestration
 
-Those are intentionally outside kogoto's core workflow.
+These are outside kogoto's core workflow.
