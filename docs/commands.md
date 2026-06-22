@@ -1,61 +1,71 @@
 # kogoto Commands
 
-This document defines provisional CLI commands for the kogoto MVP.
+This document defines the provisional CLI surface for kogoto.
 
-The command design is intentionally narrow.
-kogoto focuses on Issue refinement, not implementation.
+kogoto is not designed as a collection of small commands for manually operating GitHub Issues.
 
-## Design principles
-
-### 1. Issue-first
-
-Most commands operate on a GitHub Issue.
-
-```sh
-kogoto refine 123
-```
-
-The Issue is the primary unit of discussion, refinement, and decomposition.
-
-### 2. Human-in-the-loop
-
-Commands should propose changes before making persistent changes.
-
-Posting comments may be allowed with explicit flags.
-Creating Issues, updating Issue bodies, or writing ADRs should require explicit confirmation.
-
-### 3. No implementation loop
-
-Commands should not implement code, run tests, manage worktrees, create PRs, or orchestrate coding agents.
-
-### 4. Structured Markdown output
-
-The MVP should produce human-readable Markdown.
-
-Machine-readable output may be added later, but the first target is readable Issue comments.
-
-## Command list
-
-## `kogoto refine`
-
-Analyze an Issue and produce a structured refinement report.
+The primary command is:
 
 ```sh
 kogoto refine <issue-number>
 ```
 
-Default behavior:
+This command starts an interactive Issue refinement session.
 
-* read the Issue
-* read relevant comments
-* summarize current understanding
-* list accepted decisions
-* list rejected alternatives
-* list open questions
-* estimate expected impact
-* suggest split candidates
-* suggest ADR candidates
-* print the result to stdout
+Other operations, such as posting comments, creating child Issues, suggesting ADRs, or updating parent Issues, are performed inside the refinement session after explicit user approval.
+
+## Command design principles
+
+### 1. Narrow CLI surface
+
+kogoto should expose as few user-facing commands as possible.
+
+The CLI should start and configure refinement sessions.
+It should not force users to leave the session to run separate commands for each action.
+
+### 2. Issue-first
+
+The primary unit is a GitHub Issue.
+
+```sh
+kogoto refine 123
+```
+
+kogoto reads and refines that Issue.
+
+### 3. Chat-driven refinement
+
+Issue refinement happens inside a conversation.
+
+The user can answer questions, approve actions, reject suggestions, or revise interpretations without running additional commands.
+
+### 4. Human-approved side effects
+
+Persistent actions require explicit approval.
+
+Examples:
+
+- posting an Issue comment
+- creating child Issues
+- updating Issue bodies
+- linking Issues
+- preparing ADR drafts
+
+### 5. No implementation loop
+
+kogoto commands should not implement code, run tests, manage worktrees, create pull requests, or orchestrate coding agents.
+
+Those responsibilities belong to other tools.
+
+## MVP command
+
+## `kogoto refine <issue-number>`
+
+Start an interactive Issue refinement session.
+
+```sh
+kogoto refine <issue-number>
+```
 
 Example:
 
@@ -63,48 +73,41 @@ Example:
 kogoto refine 123
 ```
 
-### Options
+### Responsibilities
 
-```sh
-kogoto refine 123 --post
-```
+`kogoto refine` may:
 
-Post the refinement report as an Issue comment.
+- read the target Issue
+- read relevant Issue comments
+- summarize the current state
+- identify accepted decisions
+- identify rejected alternatives
+- identify unresolved questions
+- estimate likely implementation impact
+- suggest split candidates
+- suggest ADR candidates
+- propose Issue comments
+- propose child Issue creation
+- propose parent Issue updates
+- propose sibling Issue updates
+- execute approved persistent actions
 
-```sh
-kogoto refine 123 --dry-run
-```
+### Default behavior
 
-Print the report without posting.
-This should be the default behavior.
+By default, `kogoto refine` starts a session and performs no persistent GitHub changes without approval.
 
-```sh
-kogoto refine 123 --format markdown
-```
-
-Select output format.
-
-MVP supported format:
-
-* `markdown`
-
-Future formats may include:
-
-* `json`
-* `yaml`
-
-### MVP output sections
+At session start, kogoto should produce an initial view such as:
 
 ```markdown
-# Refinement
+# Refinement Session
 
 ## Current understanding
+
+## Open questions
 
 ## Accepted decisions
 
 ## Rejected alternatives
-
-## Open questions
 
 ## Estimated impact
 
@@ -112,306 +115,237 @@ Future formats may include:
 
 ## ADR candidates
 
-## Suggested next action
+## Suggested next step
 ```
 
-## `kogoto discuss`
+The user can then respond in chat.
 
-Record a human discussion note on an Issue.
+### Persistent action approval
 
-```sh
-kogoto discuss <issue-number> --body "..."
-```
-
-This command posts a structured discussion note to the Issue.
-
-The MVP may require `--body` explicitly.
-If `--body` is missing, the command should fail rather than opening an editor.
+When kogoto wants to perform a persistent action, it should show the proposed action and ask for approval.
 
 Example:
 
-```sh
-kogoto discuss 123 --body "We decided that kogoto should not own implementation loops."
+```text
+Proposed action:
+Post the following refinement comment to Issue #123.
+
+Proceed?
 ```
 
-### Options
+The action is executed only if the user approves.
 
-```sh
-kogoto discuss 123 --body "..." --type decision
-```
+### Examples of session actions
 
-Possible discussion types:
+The following are actions inside a `kogoto refine` session.
 
-* `note`
-* `question`
-* `answer`
-* `decision`
-* `rejection`
-* `concern`
+They are not separate primary commands in the MVP.
 
-The discussion type is metadata for future refinement.
+#### Post a refinement comment
 
-### Output format
-
-A posted discussion comment may use:
-
-```markdown
-# Discussion Note
-
-Type: decision
-
-We decided that kogoto should not own implementation loops.
-```
-
-## `kogoto split`
-
-Suggest child Issues for a broad Issue.
-
-```sh
-kogoto split <issue-number>
-```
-
-Default behavior:
-
-* analyze the Issue
-* detect separable concerns
-* propose child Issue candidates
-* print candidates to stdout
-* do not create Issues
+kogoto may propose posting a structured refinement comment.
 
 Example:
 
-```sh
-kogoto split 123
+```text
+This summary is now stable enough to record. Should I post it to the Issue?
 ```
 
-### Options
+#### Post a decision note
 
-```sh
-kogoto split 123 --post
-```
-
-Post split candidates as a comment on the parent Issue.
-
-```sh
-kogoto split 123 --create
-```
-
-Create child Issues.
-
-`--create` should require explicit confirmation in interactive mode.
-In non-interactive mode, it should require an additional confirmation flag.
-
-Possible future option:
-
-```sh
-kogoto split 123 --create --yes
-```
-
-This should not be part of the first MVP unless necessary.
-
-### Candidate format
-
-Each split candidate should include:
-
-* proposed title
-* purpose
-* included scope
-* excluded scope
-* dependency
-* expected affected files
-* reason for split
-
-## `kogoto impact`
-
-Estimate expected implementation impact for an Issue.
-
-```sh
-kogoto impact <issue-number>
-```
-
-Default behavior:
-
-* infer likely affected files
-* infer likely affected documents
-* infer likely affected commands
-* estimate size
-* estimate uncertainty
-* warn if thresholds may be exceeded
+kogoto may propose posting a decision note when the user makes a durable decision.
 
 Example:
 
-```sh
-kogoto impact 123
+```text
+This changes the command design. Should I record it as a decision comment?
 ```
 
-### MVP metrics
+#### Suggest child Issues
 
-The MVP may estimate:
-
-* expected touched files
-* expected new files
-* expected deleted files
-* expected diff size
-* affected modules
-* affected docs
-* number of unresolved questions
-* uncertainty level
-
-These are estimates, not measured facts.
-
-### Thresholds
-
-Future configuration may define thresholds such as:
-
-```yaml
-max_expected_touched_files: 5
-max_expected_added_lines: 300
-max_open_questions: 5
-```
-
-If thresholds are exceeded, kogoto should suggest splitting the Issue.
-
-## `kogoto adr`
-
-Detect ADR candidates in an Issue.
-
-```sh
-kogoto adr <issue-number>
-```
-
-Default behavior:
-
-* read Issue discussion
-* detect design decisions
-* list ADR candidates
-* explain why each candidate may deserve ADR recording
-* do not create ADR files
+kogoto may propose child Issues when the current Issue is too broad.
 
 Example:
 
-```sh
-kogoto adr 123
+```text
+This Issue contains three separable concerns. Should I propose child Issues?
 ```
 
-### Options
+#### Create child Issues
 
-```sh
-kogoto adr 123 --post
-```
-
-Post ADR candidates as an Issue comment.
-
-```sh
-kogoto adr 123 --create
-```
-
-Create an ADR draft.
-
-`--create` should be outside the first MVP unless the ADR location and template are already configured.
-
-### ADR candidate format
-
-```markdown
-# ADR Candidates
-
-## Candidate 1
-
-Decision:
-Limit kogoto scope to Issue refinement and decomposition governance.
-
-Reason:
-This defines the boundary between kogoto and orchestration tools.
-
-Suggested action:
-Ask whether this should be recorded as an ADR.
-```
-
-## `kogoto sync`
-
-Check consistency between parent, child, and sibling Issues.
-
-```sh
-kogoto sync <issue-number>
-```
-
-This command is not required for the first MVP, but it represents an important future direction.
-
-Default behavior:
-
-* detect parent Issue
-* detect child Issues
-* detect sibling Issues
-* compare decisions
-* detect scope overlap
-* detect outdated parent summaries
-* detect decisions that should propagate
+kogoto may create child Issues only after approval.
 
 Example:
 
-```sh
-kogoto sync 123
+```text
+I can create the following two child Issues and link them from the parent. Proceed?
 ```
 
-### MVP status
+#### Update parent Issue
 
-`kogoto sync` should probably be documented as future work, not implemented first.
+kogoto may propose updating the parent Issue when child Issue discussions change shared assumptions.
 
-The first MVP should focus on `refine`.
+Example:
 
-## MVP command set
-
-The first MVP should implement only:
-
-```sh
-kogoto refine <issue-number>
+```text
+This decision affects the parent Issue summary. Should I update the parent Issue?
 ```
 
-Optional MVP extension:
+#### Suggest ADR recording
 
-```sh
-kogoto refine <issue-number> --post
+kogoto may suggest ADR recording when a decision is architectural or durable.
+
+Example:
+
+```text
+This looks like an ADR candidate. Should I prepare an ADR draft or post an ADR candidate comment?
 ```
 
-The following commands may be documented as provisional but should not be implemented first:
+## Options for `kogoto refine`
 
-* `kogoto discuss`
-* `kogoto split`
-* `kogoto impact`
-* `kogoto adr`
-* `kogoto sync`
+The MVP should keep options minimal.
 
-## Recommended MVP behavior
+### `--repo`
 
-For the first implementation, kogoto should:
+Specify the target repository.
 
-1. Accept an Issue number.
-2. Fetch the Issue body and comments.
-3. Produce a Markdown refinement report.
-4. Print the report to stdout.
-5. Optionally post the report with `--post`.
+```sh
+kogoto refine 123 --repo tooppoo/kogoto
+```
 
-It should not:
+If omitted, kogoto may infer the repository from the current Git remote.
 
-* create child Issues
-* update Issue bodies
-* create ADR files
-* modify repository files
-* run tests
-* create branches
-* create pull requests
-* call implementation agents
+### `--no-post`
+
+Disable persistent posting actions for the session.
+
+```sh
+kogoto refine 123 --no-post
+```
+
+When enabled, kogoto may still propose comments, but it must not execute GitHub write actions.
+
+This is useful for local review or dry-run usage.
+
+### `--format`
+
+Select output format for non-interactive or exported summaries.
+
+```sh
+kogoto refine 123 --format markdown
+```
+
+MVP supported value:
+
+```text
+markdown
+```
+
+Future values may include:
+
+```text
+json
+yaml
+```
+
+### `--non-interactive`
+
+Run a non-interactive analysis and print the refinement report.
+
+```sh
+kogoto refine 123 --non-interactive
+```
+
+In non-interactive mode, kogoto must not perform persistent actions unless explicit write flags are introduced in the future.
+
+For the MVP, non-interactive mode should be read-only.
+
+## Internal session actions
+
+The following names describe internal capabilities.
+
+They are not primary user-facing CLI commands in the MVP.
+
+- `post_refinement_comment`
+- `post_decision_note`
+- `post_question_note`
+- `post_rejected_alternative`
+- `create_child_issue`
+- `update_parent_issue`
+- `update_child_issue`
+- `link_issues`
+- `suggest_adr_candidate`
+- `prepare_adr_draft`
+
+These may exist internally as implementation units, but the user should normally encounter them as proposals inside a `kogoto refine` session.
+
+## Commands intentionally not included in the MVP
+
+The following commands should not be exposed as primary MVP commands.
+
+```sh
+kogoto split
+kogoto adr
+kogoto discuss
+kogoto impact
+kogoto sync
+kogoto implement
+kogoto test
+kogoto pr
+kogoto review
+kogoto run
+```
+
+### Reason
+
+These commands either duplicate session actions or move kogoto toward full development workflow orchestration.
+
+The MVP should avoid this.
+
+In particular:
+
+- Issue splitting should happen as a proposal inside `kogoto refine`.
+- ADR detection should happen inside `kogoto refine`.
+- Discussion recording should happen inside `kogoto refine`.
+- Impact estimation should happen inside `kogoto refine`.
+- Parent-child synchronization should happen inside `kogoto refine` or future refinement sessions.
+- Implementation and testing should remain outside kogoto.
+
+## Future low-level commands
+
+Future versions may introduce low-level commands for scripting or orchestration.
+
+If introduced, they should be treated as advanced or internal commands, not as the primary user experience.
+
+Examples:
+
+```sh
+kogoto issue post-comment
+kogoto issue create-child
+kogoto issue link
+kogoto adr prepare
+```
+
+These commands should not be required for ordinary refinement work.
+
+An orchestration tool may call such commands, but human users should be able to complete a refinement flow through `kogoto refine`.
 
 ## Exit behavior
 
-Recommended exit behavior:
+Recommended exit codes:
 
-* `0`: command completed successfully
-* `1`: general failure
-* `2`: invalid arguments
-* `3`: GitHub access failure
-* `4`: Issue not found
-* `5`: refinement generation failure
+```text
+0  success
+1  general failure
+2  invalid arguments
+3  GitHub access failure
+4  Issue not found
+5  refinement generation failure
+6  persistent action rejected or cancelled
+```
+
+A rejected or cancelled persistent action is not necessarily a session failure.
+The exact exit behavior may differ between interactive and non-interactive modes.
 
 ## Configuration
 
@@ -432,24 +366,44 @@ thresholds:
 adr:
   enabled: true
   directory: docs/adr
+
+session:
+  allow_posting: true
+  allow_child_issue_creation: false
 ```
 
-The MVP should not require configuration if repository context can be inferred.
+The MVP should not require configuration if the repository can be inferred.
 
-## Non-goals
+## MVP summary
 
-The CLI should not become a general development automation interface.
-
-Avoid commands such as:
+The first MVP should implement:
 
 ```sh
-kogoto implement
-kogoto test
-kogoto pr
-kogoto review
-kogoto run
+kogoto refine <issue-number>
 ```
 
-Those belong to implementation agents, test tools, Git workflow tools, or orchestration tools.
+It should support:
 
-kogoto should remain focused on Issue refinement.
+- reading an Issue
+- reading comments
+- starting a refinement session
+- producing a structured understanding
+- asking questions
+- proposing comments
+- posting comments after approval
+
+It should not initially require:
+
+- child Issue creation
+- ADR file creation
+- parent Issue updates
+- sibling Issue synchronization
+- implementation
+- tests
+- pull requests
+- worktree management
+- orchestration
+
+The CLI surface should remain small.
+
+kogoto should behave as an Issue refinement facilitator, not as a general development automation interface.
