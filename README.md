@@ -1,121 +1,150 @@
 # kogoto
 
-kogoto is a human-in-the-loop tool for refining Issues.
+kogoto is a human-in-the-loop tool for refining GitHub Issues.
 
-It helps humans turn vague, broad, or unstable Issues into smaller, reviewable discussion units.
-kogoto does not implement the Issue.
-kogoto does not run the development workflow.
-kogoto focuses on the feedback loop before implementation begins.
+kogoto helps humans clarify, decompose, and govern Issues before implementation begins.
+It does not implement code.
+It does not run the full development workflow.
+It starts a refinement conversation around an Issue and performs persistent GitHub actions only after human approval.
 
 ## Concept
 
-Software development often starts from an Issue that is too large, too vague, or too unstable to implement safely.
+Software development often starts from an Issue that is too large, vague, or unstable to implement safely.
 
-A large Issue may contain several hidden decisions:
+A single Issue may contain multiple hidden concerns:
 
-* What problem is actually being solved?
-* Which behavior should change?
-* Which files or modules may be affected?
-* Which design decisions need to be recorded?
-* Which parts should be split into separate Issues?
-* Which decisions in a child Issue affect the parent Issue or sibling Issues?
+- What problem is actually being solved?
+- Which behavior should change?
+- Which files or modules may be affected?
+- Which design decisions need to be recorded?
+- Which parts should be split into separate Issues?
+- Which decisions affect parent, child, or sibling Issues?
 
 kogoto treats an Issue as a place for structured refinement.
 
-Its purpose is to help humans keep the Issue small enough to review with confidence, while preserving the reasoning process on GitHub.
+The goal is not to turn an Issue into an autonomous implementation task.
+The goal is to make the Issue small enough, explicit enough, and stable enough for humans to review with confidence.
+
+## Core idea
+
+kogoto is centered on one primary interaction:
+
+```sh
+kogoto refine <issue-number>
+```
+
+This command starts an Issue refinement session.
+
+Inside the session, kogoto may:
+
+- read the Issue body and comments
+- summarize the current state
+- ask clarification questions
+- identify accepted decisions
+- identify rejected alternatives
+- identify unresolved questions
+- estimate likely implementation impact
+- suggest Issue splitting
+- suggest ADR recording
+- propose comments to post on GitHub
+- propose child Issues to create
+- propose parent or sibling Issue updates
+
+Persistent actions are not performed silently.
+
+kogoto may propose an action, but it must ask the user before posting comments, creating Issues, updating Issue bodies, or preparing ADR-related records.
 
 ## What kogoto solves
 
-kogoto helps with the following problems.
+### 1. Issue refinement
 
-### 1. Recording discussion on Issues
+kogoto helps refine vague or broad Issues.
 
-kogoto supports a workflow where humans discuss an Issue through chat, while the important points are recorded back to the Issue.
+It identifies:
 
-The recorded information should include:
-
-* questions
-* answers
-* accepted decisions
-* rejected alternatives
-* unresolved concerns
-* split candidates
-* ADR candidates
-* impact notes
-
-The goal is not to preserve every chat message verbatim.
-The goal is to preserve the reasoning that affects the Issue.
-
-### 2. Refining vague Issues
-
-kogoto helps identify when an Issue is not yet ready for implementation.
-
-It may point out:
-
-* unclear goals
-* missing acceptance criteria
-* unresolved design decisions
-* ambiguous scope
-* missing affected files or modules
-* likely overlap with other Issues
-* excessive expected change size
+- unclear goals
+- ambiguous scope
+- missing acceptance criteria
+- unresolved questions
+- hidden design decisions
+- likely implementation impact
+- possible split boundaries
 
 kogoto does not decide the final scope by itself.
-It presents refinement questions and asks humans to decide.
+It helps humans notice where judgment is required.
 
-### 3. Splitting large Issues
+### 2. Issue decomposition
 
-kogoto helps detect when an Issue should be split.
+kogoto helps detect when an Issue is too large.
 
-Split suggestions may be based on:
+It may suggest decomposition based on:
 
-* number of expected touched files
-* estimated diff size
-* number of independent decisions
-* number of affected modules
-* separability of acceptance criteria
-* dependency between subproblems
-* risk of mixing design discussion and implementation work
+- number of independent concerns
+- number of unresolved decisions
+- likely affected files
+- likely affected modules
+- estimated diff size
+- separability of acceptance criteria
+- risk of mixing design, documentation, and implementation concerns
 
-kogoto should not split Issues silently.
-Issue splitting is a human decision.
+kogoto can propose child Issues during a refinement session.
 
-### 4. Tracking parent, child, and sibling Issue relationships
+Child Issue creation requires explicit user approval.
 
-When an Issue is split, kogoto helps keep the resulting Issue set coherent.
+### 3. Discussion recording
 
-It should track:
+kogoto helps preserve important reasoning on GitHub Issues.
 
-* parent Issue
-* child Issues
-* sibling Issues
-* decisions inherited from the parent
-* decisions made in a child Issue
-* decisions that affect siblings
-* decisions that should be reflected back to the parent
+The goal is not to record every chat message.
+The goal is to record decision-relevant information.
 
-The goal is to make Issue decomposition manageable rather than letting it become a source of fragmentation.
+Examples of information worth recording:
 
-### 5. Detecting ADR candidates
+- accepted decisions
+- rejected alternatives
+- unresolved concerns
+- answered questions
+- split rationale
+- ADR candidates
+- parent-child Issue relationships
+- sibling Issue dependencies
 
-When a discussion produces a design decision, kogoto may suggest recording it as an ADR.
+### 4. ADR candidate detection
+
+When a discussion produces a persistent design decision, kogoto may suggest recording it as an ADR.
 
 Examples:
 
-* choosing a core concept
-* rejecting an alternative architecture
-* defining a boundary between tools
-* changing a workflow principle
-* introducing a persistent data format
-* defining a compatibility policy
+- defining the scope of kogoto
+- rejecting full workflow orchestration
+- introducing a persistent data format
+- defining Issue relationship semantics
+- changing CLI behavior
+- defining a compatibility policy
 
-kogoto should ask before creating or updating ADR-related content.
+kogoto does not create or update ADRs silently.
+It asks whether the decision should be recorded.
+
+### 5. Parent-child Issue governance
+
+Issue decomposition can make development easier to review, but it also introduces management cost.
+
+kogoto helps reduce that cost by tracking:
+
+- parent Issues
+- child Issues
+- sibling Issues
+- inherited decisions
+- local decisions
+- cross-Issue effects
+- outdated parent Issue summaries
+- duplicated or conflicting sibling scopes
+
+The purpose is to support fine-grained work without losing the overall reasoning structure.
 
 ## What kogoto does not solve
 
-kogoto intentionally does not cover the whole development workflow.
-
-The following are outside the core scope.
+kogoto intentionally does not cover the full development workflow.
 
 ### Implementation
 
@@ -123,17 +152,17 @@ kogoto does not implement code changes.
 
 Implementation should be handled by humans, coding agents, or other tools.
 
-### Test execution and verification loops
+### Test execution and verification
 
 kogoto does not own test execution, coverage analysis, or verification loops.
 
-These may be handled by tools such as CI, or project-specific scripts.
+These belong to test tools, CI, or project-specific scripts.
 
-### Git worktree and branch management
+### Git workflow management
 
-kogoto does not manage worktrees, branches, commits, or pull requests.
+kogoto does not manage worktrees, branches, commits, pull requests, or merge flows.
 
-These may be handled by tools such as git-kura or other Git workflow tools.
+These belong to Git workflow tools.
 
 ### Repository-wide structural analysis
 
@@ -145,42 +174,89 @@ A separate tool should handle broader repository structure review.
 
 kogoto is not the orchestrator of the full development workflow.
 
-A separate orchestration tool may combine kogoto, coding agents, and CI.
+A separate orchestration tool may combine kogoto, test tools, Git workflow tools, repository analysis tools, coding agents, and CI.
 
-kogoto should remain a focused tool for Issue refinement.
+kogoto should remain focused on Issue refinement and decomposition governance.
 
-## MVP scope
-
-The first MVP focuses on producing structured refinement comments for GitHub Issues.
-
-The MVP should support:
-
-1. Reading an Issue and its relevant comments.
-2. Summarizing the current state of discussion.
-3. Extracting unresolved questions.
-4. Extracting accepted decisions.
-5. Extracting rejected alternatives.
-6. Identifying ADR candidates.
-7. Estimating whether the Issue is too large.
-8. Suggesting split candidates.
-9. Posting a refinement comment to the Issue.
-
-The MVP does not need to:
-
-* create child Issues automatically
-* create ADR files automatically
-* run implementation
-* run tests
-* open pull requests
-* manage branches or worktrees
-* orchestrate other tools
-
-## Guiding principle
+## Human-in-the-loop principle
 
 kogoto should keep humans in control.
 
-It should make Issues smaller, clearer, and easier to review.
-It should not hide decisions behind automation.
-It should not turn vague Issues into implementation tasks without human judgment.
+It may analyze, summarize, question, and propose.
+It may not silently make persistent project decisions.
 
-kogoto exists to preserve and structure the reasoning before implementation begins.
+The following actions require explicit user approval:
+
+- posting an Issue comment
+- creating a child Issue
+- updating a parent Issue
+- updating a child Issue
+- linking Issues
+- preparing an ADR draft
+- updating ADR-related documentation
+- marking an Issue as ready for implementation
+- changing the stated scope of an Issue
+
+kogoto should make judgment points visible rather than hiding them behind automation.
+
+## MVP scope
+
+The first MVP focuses on one command:
+
+```sh
+kogoto refine <issue-number>
+```
+
+The MVP should start an Issue refinement session that can:
+
+1. Read a GitHub Issue.
+2. Read relevant Issue comments.
+3. Summarize the current Issue state.
+4. Identify accepted decisions.
+5. Identify rejected alternatives.
+6. Identify unresolved questions.
+7. Estimate likely implementation impact.
+8. Suggest split candidates.
+9. Suggest ADR candidates.
+10. Propose a refinement comment.
+11. Post the comment only after user approval.
+
+The MVP does not need to:
+
+- implement code
+- run tests
+- manage branches
+- create pull requests
+- run coding agents
+- orchestrate external tools
+- automatically create child Issues
+- automatically create ADR files
+
+Child Issue creation and ADR draft creation may be designed as future session actions, but they are not required for the first MVP.
+
+## Project boundary
+
+kogoto is not a general-purpose GitHub automation tool.
+
+It is an Issue refinement tool.
+
+Its core responsibility is to help humans move from:
+
+```text
+large, vague, unstable Issue
+```
+
+to:
+
+```text
+smaller, clearer, reviewable Issues with recorded reasoning
+```
+
+Implementation begins after kogoto has helped clarify the Issue structure.
+
+## Guiding statement
+
+kogoto exists to make Issue discussion smaller, more explicit, and easier to review.
+
+It does not remove human judgment.
+It creates more precise places for human judgment to happen.
